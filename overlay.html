@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: transparent;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .clock {
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 20px;
+      padding: 30px 50px;
+      text-align: center;
+      min-width: 380px;
+      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+    }
+    .label {
+      font-size: 26px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      opacity: 0.85;
+      margin-bottom: 12px;
+    }
+    .time {
+      font-size: 120px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .clock.active {
+      box-shadow: 0 0 0 5px #4ade80;
+    }
+    .clock.active .time {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <div id="p1" class="clock">
+    <div class="label">White</div>
+    <div class="time">05:00</div>
+  </div>
+  <div id="p2" class="clock">
+    <div class="label">Black</div>
+    <div class="time">05:00</div>
+  </div>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:8080');
+    const p1 = document.getElementById('p1');
+    const p2 = document.getElementById('p2');
+
+    function fmt(ms) {
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type !== 'state') return;
+      const s = msg.state;
+      p1.querySelector('.label').textContent = s.p1Name;
+      p2.querySelector('.label').textContent = s.p2Name;
+      p1.querySelector('.time').textContent = fmt(s.p1);
+      p2.querySelector('.time').textContent = fmt(s.p2);
+      p1.className = 'clock' + (s.active === 1 && s.running ? ' active' : '');
+      p2.className = 'clock' + (s.active === 2 && s.running ? ' active' : '');
+    };
+  </script>
+</body>
+</html>

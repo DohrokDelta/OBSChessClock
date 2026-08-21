@@ -1,0 +1,13 @@
+{
+  "name": "obs-chess-clock",
+  "version": "1.0.0",
+  "description": "Chess Clock for OBS: for debates, Chess, shenanigans, and everything in between.",
+  "main": "server.js",
+  "author": "MiniDohrok",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f0f0f;
+      color: #eee;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 { margin-bottom: 6px; font-size: 22px; }
+    .clock {
+      font-size: 42px;
+      font-variant-numeric: tabular-nums;
+      margin: 10px;
+      display: inline-block;
+      min-width: 180px;
+      padding: 16px;
+      border-radius: 10px;
+      background: #1f1f1f;
+    }
+    .clock.active {
+      color: #4ade80;
+      box-shadow: 0 0 0 2px #4ade80;
+    }
+    button {
+      font-size: 18px;
+      padding: 14px 26px;
+      margin: 8px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2563eb;
+      color: #fff;
+    }
+    button:active { transform: scale(0.98); }
+    button.secondary { background: #3b3b3b; }
+    button.danger { background: #dc2626; }
+    input {
+      font-size: 18px;
+      padding: 8px;
+      width: 70px;
+      text-align: center;
+      border-radius: 6px;
+      border: none;
+    }
+    input[type="text"] { width: 120px; margin: 0 6px; }
+    .row { margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <h1>OBS Chess Clock Controller</h1>
+  <div class="row">
+    <input id="p1Name" type="text" value="White" />
+    <input id="p2Name" type="text" value="Black" />
+    <button id="setNamesBtn" class="secondary">Update Names</button>
+  </div>
+  <div>
+    <div id="p1" class="clock active">05:00</div>
+    <div id="p2" class="clock">05:00</div>
+  </div>
+  <div class="row">
+    <button id="switchBtn" class="secondary">Start</button>
+    <button id="pauseBtn" class="secondary">Pause</button>
+    <button id="resetBtn" class="danger">Reset</button>
+  </div>
+  <div class="row">
+    <label>Start minutes: <input id="minutes" type="number" value="5" min="1"></label>
+    <button id="setBtn" class="secondary">Set</button>
+  </div>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:8080');
+    const p1 = document.getElementById('p1');
+    const p2 = document.getElementById('p2');
+    const p1Name = document.getElementById('p1Name');
+    const p2Name = document.getElementById('p2Name');
+    const switchBtn = document.getElementById('switchBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    let currentState = { running: false };
+    let lastP1Name = null;
+    let lastP2Name = null;
+
+    function fmt(ms) {
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type !== 'state') return;
+      currentState = msg.state;
+      p1.textContent = fmt(currentState.p1);
+      p2.textContent = fmt(currentState.p2);
+      if (currentState.p1Name !== lastP1Name && document.activeElement !== p1Name) {
+        p1Name.value = currentState.p1Name;
+        lastP1Name = currentState.p1Name;
+      }
+      if (currentState.p2Name !== lastP2Name && document.activeElement !== p2Name) {
+        p2Name.value = currentState.p2Name;
+        lastP2Name = currentState.p2Name;
+      }
+      p1.className = 'clock' + (currentState.active === 1 && currentState.running ? ' active' : '');
+      p2.className = 'clock' + (currentState.active === 2 && currentState.running ? ' active' : '');
+      switchBtn.textContent = currentState.running ? 'Switch' : 'Start';
+      pauseBtn.textContent = currentState.running ? 'Pause' : 'Resume';
+    };
+
+    const send = (obj) => ws.send(JSON.stringify(obj));
+
+    switchBtn.onclick = () => send({ type: 'toggle' });
+    pauseBtn.onclick = () => send(currentState.running ? { type: 'pause' } : { type: 'start' });
+    document.getElementById('resetBtn').onclick = () => send({ type: 'reset' });
+    document.getElementById('setBtn').onclick = () => {
+      send({ type: 'setTime', minutes: parseInt(document.getElementById('minutes').value, 10) });
+    };
+    document.getElementById('setNamesBtn').onclick = () => {
+      send({ type: 'setNames', p1Name: p1Name.value, p2Name: p2Name.value });
+    };
+  </script>
+</body>
+</html>
